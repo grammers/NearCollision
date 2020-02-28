@@ -6,37 +6,24 @@ from __future__ import print_function
 import sys
 import subprocess
 
-import cv2
-
 import rospy 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
-#from utils.timer import Timer
-#import tensorflow as tf
-#import matplotlib.pyplot as plt
 import numpy as np
 import os, cv2
 import argparse
 
-#from nets.vgg16 import vgg16
-#from nets.resnet_v1 import resnetv1
-
-
 ##### Imports for prediction network #####
 import torch
 import torchvision.models as models
-#import h5py 
-#from logger import Logger
 from torchvision.transforms import transforms 
 import torch.utils.data as data
-import numpy as np 
 import pdb
 import torch.nn as nn 
 import torch.optim as optim 
 from torch.autograd import Variable
 import shutil
-import os 
 import random
 import torch.nn.functional as F
 ##########################################
@@ -70,6 +57,9 @@ vgg_model.classifier[-1] = nn.Linear(num_final_in, NUM_CLASSES)
 model_path = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/vgg_on_voc800'
 vgg_model.load_state_dict(torch.load(model_path)) 
 ##########################################
+# mean is used to offset normalisation
+mean = 2.2997543581616484
+
 
 class MultiStreamNearCollision(nn.Module):
 
@@ -131,6 +121,7 @@ class MultiStreamNearCollision(nn.Module):
 class image_converter:
 
     def __init__(self):
+        self.multi_size = 6
 
         ## Object of predictNearCollision class will be created here 
         #self.predNet = predictNearCollision()
@@ -145,7 +136,7 @@ class image_converter:
 
         self.counter = 0 ## Intializing a counter, alternately I can initialize a queue 
 
-        self.stack_imgs = deque(maxlen=6)   ## 4 frames 
+        self.stack_imgs = deque(maxlen=self.multi_size)   ## 4 frames 
 
 	## To check the frequency 
 	#self.image_pub = rospy.Publisher("image_topic_2", Image)
@@ -160,30 +151,6 @@ class image_converter:
 
         return args
 
-    '''
-    def vis_detections(self, im, class_name, dets, time, thresh=0.5):
-		"""Draw detected bounding boxes."""
-		inds = np.where(dets[:, -1] >= thresh)[0]
-		if len(inds) == 0:
-			return
-
-
-		for i in inds:
-			bbox = dets[i, :4]
-			score = dets[i, -1]
-
-			cv2.rectangle(im, (int(bbox[0]), int(bbox[1])), 
-				(int(bbox[2]), int(bbox[3])),
-				(255, 255, 0), 2)
-
-			cv2.putText(im,  str(time) + " s", (int(bbox[0]), int(bbox[1]-2)), 
-				cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 3) ## thickness = 3, blue color 
-
-
-		#cv2.imshow("Image window", im)
-		cv2.imwrite('predictions/'+str(self.counter)+'.png', im)
-		#cv2.waitKey(1)
-        '''
 
     def callback(self,data):
 
@@ -192,10 +159,6 @@ class image_converter:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
-        #cv_image = data
-	## cv_image is my im
-        
-        #cv_image = tf.convert_to_tensor(data.data, dtype=tf.uint8)
 
         # # Visualize detections for each class 
         CONF_THRESH = 0.8 
@@ -209,17 +172,18 @@ class image_converter:
         self.stack_imgs.append(input_imgs)
         #print(len(self.stack_imgs)) ## will keep on discarding the previous frames and keep the latest four 
 
-        if (len(self.stack_imgs) == 6):
+        if (len(self.stack_imgs) == self.multi_size):
 
             input = list(self.stack_imgs)
             input = torch.stack(input, dim=1)
-            t = self.nstream(input)[0].detach().cpu().numpy()
+            t = self.nstream(input)[0].detach().cpu().numpy() + mean
         else:
             t = 1000  
 
 		#t = self.predNet.getNearCollisionTime(cv_image)
 
         self.counter = self.counter + 1
+        print(self.counter)
         print(t)
         self.time_pub.publish(t)
 
