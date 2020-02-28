@@ -50,7 +50,7 @@ NETS = {'vgg16': ('vgg16_faster_rcnn_iter_70000.ckpt',),'res101': ('res101_faste
 DATASETS= {'pascal_voc': ('voc_2007_trainval',),'pascal_voc_0712': ('voc_2007_trainval+voc_2012_trainval',)}
 
 ##########################################
-vgg_model = models.vgg16(pretrained=False)
+vgg_model = models.vgg16(pretrained=True)
 num_final_in = vgg_model.classifier[-1].in_features
 NUM_CLASSES = 20 
 vgg_model.classifier[-1] = nn.Linear(num_final_in, NUM_CLASSES)
@@ -142,14 +142,6 @@ class image_converter:
 	#self.image_pub = rospy.Publisher("image_topic_2", Image)
         self.time_pub = rospy.Publisher('near_collision_time', Float32, queue_size = 10)
 
-    def parse_args(self):
-        """Parse input arguments."""
-        parser = argparse.ArgumentParser(description='Tensorflow Faster R-CNN demo')
-        parser.add_argument('--net', dest='demo_net', help='Network to use [vgg16 res101]', choices=NETS.keys(), default='res101')
-        parser.add_argument('--dataset', dest='dataset', help='Trained dataset [pascal_voc pascal_voc_0712]', choices=DATASETS.keys(), default='pascal_voc_0712')
-        args = parser.parse_args()
-
-        return args
 
 
     def callback(self,data):
@@ -160,13 +152,8 @@ class image_converter:
         except CvBridgeError as e:
             print(e)
 
-        # # Visualize detections for each class 
-        CONF_THRESH = 0.8 
-        NMS_THRESH = 0.3 
 
         ## cv_image is my im to be passed into the network
-
-
         input_imgs = self.nstream.preprocess(cv_image)
 
         self.stack_imgs.append(input_imgs)
@@ -176,11 +163,10 @@ class image_converter:
 
             input = list(self.stack_imgs)
             input = torch.stack(input, dim=1)
-            t = self.nstream(input)[0].detach().cpu().numpy() + mean
+            t = self.nstream(input)[0].data + mean
         else:
             t = 1000  
 
-		#t = self.predNet.getNearCollisionTime(cv_image)
 
         self.counter = self.counter + 1
         print(self.counter)
