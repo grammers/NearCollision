@@ -10,6 +10,7 @@ project(nearCollision)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
+  sensor_msgs
 )
 
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
