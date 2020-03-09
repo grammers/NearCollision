@@ -10,7 +10,7 @@ import torch
 import torchvision.models as models
 import torch.nn as nn 
 
-mean = 2.2997543581616484
+mean = 2.26691915033756 
 class net_loader:
 
     def __init__(self):
@@ -62,7 +62,7 @@ class ROS_runner:
         self.time_pub = rospy.Publisher(
         'near_collision_time', Float32, queue_size = 10)
 
-        print('setup complet')
+        self.i = 0
 
     def callback(self, data):
         self.image_prosesser.preprocess(data) 
@@ -73,11 +73,14 @@ class ROS_runner:
             t = 1000
 
         self.time_pub.publish(t)
+        self.i += 1
+        print(self.i)
         print(t)
 
 def main():
     ros_runner = ROS_runner()
     rospy.init_node('run_on_cam', anonymous=True)
+    print('setup complet')
     try:
         rospy.spin()
     except KeyboardInterrupt:
