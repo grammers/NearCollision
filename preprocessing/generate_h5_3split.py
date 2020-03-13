@@ -1,4 +1,6 @@
 #!/usr/bin/python
+import gc
+import mat73
 import cv2
 import h5py
 import os
@@ -7,6 +9,7 @@ import scipy.io
 import math
 
 def generateH5(imgs, labels, name):
+    print(len(imgs))
     name = name.split('.')[0]
     imgs = np.array(imgs)
     #imgs_r = np.zeros((int(math.ceil(imgs.shape[1] / 2)), 224, 224, 3))
@@ -16,8 +19,8 @@ def generateH5(imgs, labels, name):
     label_r = []
     label_u = []
     i = 0 
-    for img in imgs[0]:
-        test = cv2.resize(img, (224, 224)) 
+    for img in imgs:
+        test = cv2.resize(img.T, (224, 224)) 
         if i % 2 == 0:
             imgs_r.append(test)
             if len(labels) > i + 60:
@@ -33,11 +36,11 @@ def generateH5(imgs, labels, name):
         i += 1
     label_u = np.asarray(label_u) 
     label_r = np.asarray(label_r)
-    f = h5py.File(name + '_e.h5', 'w')
+    f = h5py.File('../data/3split_h5/' + name + '_e.h5', 'w')
     f.create_dataset('lable', data=label_r)
     f.create_dataset("image", data=imgs_r)
     f.close()
-    f = h5py.File(name + '_u.h5', 'w')
+    f = h5py.File('../data/3split_h5/' + name + '_u.h5', 'w')
     f.create_dataset('lable', data=label_u)
     f.create_dataset('image', data=imgs_u)
     f.close()
@@ -70,31 +73,40 @@ if __name__ == '__main__':
 
     new_ext = extrinsic
 
-    #target_dirs = ['../data/mats_dec/',  '../data/mats_nov']
-    target_dirs =['../sample_data/']
+    #target_dirs = ['../data/mats_dec/',  '../data/mats_nov/', '../data/mats_nov2/']
+    target_dirs = ['../data/mats_nov/']
+    #target_dirs =['../sample_data/']
     for directory in target_dirs:
         for filename in os.listdir(directory): 
             if filename.endswith(".mat"):
                 labels = []
-                mat = scipy.io.loadmat(directory + filename)
+                if directory == '../data/mats_dec/':
+                    mat = scipy.io.loadmat(directory + filename)
+                else:
+                    mat = mat73.loadmat(directory + filename)
+                #mat = h5py.File(directory + filename)
+                print('read file')
                 
                 clouds = mat['clouds']
-                num = clouds[0].shape[0]
+                #num = clouds[0].shape[0]
                 left_img = mat['left_imgs']
                 right_img = mat['right_imgs']
 
-                temp = left_img[0][0]
-                size_v = temp.shape[0]
-                size_h = temp.shape[1]
+                mat = None
+                gc.collect()
+                size_v = left_img[0][0].shape[0]
+                size_h = left_img[0][0].shape[1]
+                
 
-
-                for i in range(0, num):
+                #for i in range(0, clouds[0].shape[1]):
+                for cloud in clouds:
                     label  = [0, 0, 0]
-                    cloud = clouds[0][i]
-
-
+                    #cloud = clouds[0][i]
+                    #np.flip(cloud, 0)
+                    
+                    cloud = cloud.T
                     homogenized_cloud = np.ones((cloud.shape[0], 4))
-                    homogenized_cloud[:,0:3] = cloud;
+                    homogenized_cloud[:,0:3] = cloud
 
                     image_pixels =np.matmul(intrinsic, np.matmul(new_ext, np.transpose(homogenized_cloud)))
                     image_pixels = np.divide(image_pixels, image_pixels[2,:])
@@ -128,5 +140,6 @@ if __name__ == '__main__':
                     labels.append(label)
 
                 print('filename %s' % filename)
-                generateH5(left_img, labels, filename)
-                generateH5(right_img, labels, filename)
+                generateH5(left_img, labels, ('l_' + filename))
+                #if directory == '../data/mats_nov2/':
+                generateH5(right_img, labels, ('r_' + filename))
