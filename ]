@@ -1,4 +1,4 @@
-#!/usr/bin/python
+
 # coding: utf-8
 
 # In[1]:
@@ -7,12 +7,12 @@
 import torch
 import torchvision.models as models
 import h5py 
-#from logger import Logger
+from logger import Logger
 from torchvision.transforms import transforms 
 import torch.utils.data as data
 import numpy as np 
 import pdb
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import torch.nn as nn 
 import torch.optim as optim 
 from torch.autograd import Variable
@@ -35,8 +35,8 @@ class FrameDataset(data.Dataset):
         
     def __getitem__(self, index):
 
-        rgb = np.array(self.f["image"][index])
-        label = np.array(self.f["lable"][index]) 
+        rgb = np.array(self.f["rgb"][index])
+        label = np.array(self.f["labels"][index]) 
         
         t_rgb = torch.zeros(3, 224, 224)
         
@@ -56,7 +56,7 @@ class FrameDataset(data.Dataset):
         return t_rgb, label
     
     def __len__(self):
-        return len(self.f["image"])
+        return len(self.f["rgb"])
 
 
 # In[3]:
@@ -67,7 +67,7 @@ def load_model_weights(MODEL_PATH):
     model.load_state_dict(checkpoint_dict)
     
 def save_model_weights(epoch_num):
-    model_file = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/tripelImage6s_' + str(epoch_num).zfill(3)
+    model_file = '/home/hexa/catkin_workspaces/catkin_samuel/src/newarCollision/data/trained_models/tripelImage6s_' + str(epoch_num).zfill(3)
     torch.save(model.state_dict(), model_file)
 
 
@@ -79,7 +79,7 @@ num_final_in = model.classifier[-1].in_features
 NUM_CLASSES = 20
 model.classifier[-1] = nn.Linear(num_final_in, NUM_CLASSES)
 
-model_path = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/' + 'vgg_on_voc' + str(800)
+model_path = '/home/hexa/catkin_workspaces/catkin_samuel/src/newarCollision/data/trained_models/tripelImage6s_' + 'vgg_on_voc' + str(800)
 load_model_weights(model_path)
 
 model.classifier[-1] = nn.Linear(num_final_in, 1) ## Regressed output
@@ -93,7 +93,7 @@ model.classifier = nn.Sequential(*features) # Replace the model classifier
 
 if os.path.exists('SingleImage6s'):
     shutil.rmtree('SingleImage6s')
-#logger = Logger('SingleImage6s', name='performance_curves')
+logger = Logger('SingleImage6s', name='performance_curves')
 
 
 # In[6]:
@@ -101,69 +101,67 @@ if os.path.exists('SingleImage6s'):
 
 model = model.cuda()
 test_dir = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/h5_files/tripelTest/'
-train_dir = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/h5_files/tripleTrain/'
+train_dir = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/h5_files/tripelTrain/'
 #hfp_test = h5py.File('/.h5', 'r')
 #hfp_train = h5py.File('/mnt/hdd1/aashi/cmu_data/SingleImageTrain.h5', 'r')
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-optimizer = optim.SGD(model.parameters(),0.0005)
 
 ## Test data: 949; Train data: 12146; Mean: 2.909sec; Variance: 2.2669sec
 
 iterations = 0
-epochs = 100 
+epochs = 50 
 criterion = nn.MSELoss()
 
 for e in range(epochs):
     print(e)
+    save_model_weights(e)
     model.eval()
+    err = 0.0
+    
     for test_file in os.listdir(test_dir):
         hfp_test = h5py.File(test_dir + test_file, 'r') 
-        print(test_file)
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         test_loader = data.DataLoader(FrameDataset(f = hfp_test, transform = transforms.Compose([transforms.ToTensor(), normalize]), test = True), 
                                    batch_size=1)
-        err = 0.0
-        for iter, (rgb, label) in enumerate(test_loader, 0):
+    
+        for iter,(rgb, label) in enumerate(test_loader, 0):
             rgb = rgb.float().cuda()
             label = Variable(label.float().cuda())
             label = label.unsqueeze(-1)
             outputs = model(rgb)
             #err += abs(outputs[0].data.cpu().numpy() - label[0].data.cpu().numpy())
-            for i in range(0, 3):
-                err += abs(outputs[0][i].data.cpu().numpy() - label[0][i].data.cpu().numpy())
-        #logger.scalar_summary('Test Error', err/len(test_loader), e)
-        print('test err = %s' % str(err/len(test_loader)))
+            for i in range(0, 3)
+                err += avs(outputs[0][i].data.cpu().numpy() - label[0][i].data.cpu().numpy())
+        logger.scalar_summary('Test Error', err/len(test_loader), e)
         hfp_test.close()
-    model.train() 
     
+    model.train() 
 
     for train_file in os.listdir(train_dir):
         hfp_train = h5py.File(train_dir + train_file, 'r') 
-        print(train_file)
-        batch_size = 1
+        batch_size = 28
         train_loader = data.DataLoader(FrameDataset(f = hfp_train, transform = transforms.Compose([transforms.ToTensor(), normalize]),test = False),
                                       batch_size=batch_size, shuffle=True)
+        optimizer = optim.SGD(model.parameters(),0.0005)
         for iter, (rgb, label) in enumerate(train_loader, 0):
+
             rgb = Variable(rgb.float().cuda())
             label = Variable(label.float().cuda())
             optimizer.zero_grad()
-            #label = label.unsqueeze(-1)
+            label = label.unsqueeze(-1)
             outputs = model(rgb)
-            loss = criterion(outputs[0], label[0])
-            loss.backward()
+            for i in range(0,3):
+                loss = criterion(outputs[i], label[i]) 
+                loss.backward()
             optimizer.step()
             iterations += 1
-        #logger.scalar_summary('training_loss', loss.data.cpu().numpy(), iterations)
-        hfp_train.close()
-        print('trained')
+            logger.scalar_summary('training_loss', loss.data.cpu().numpy(), iterations)
+            hfp_train.close()
 
-    if e % 10 == 0 :
-        save_model_weights(e)
-        print('saved')
 
 # In[ ]:
 
 
-#hfp_test.close()
-#hfp_train.close()
+hfp_test.close()
+hfp_train.close()
 
