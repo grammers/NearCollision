@@ -7,7 +7,7 @@
 import torch
 import torchvision.models as models
 import h5py 
-#from logger import Logger
+from logger import Logger
 from torchvision.transforms import transforms 
 import torch.utils.data as data
 import numpy as np 
@@ -67,7 +67,7 @@ def load_model_weights(MODEL_PATH):
     model.load_state_dict(checkpoint_dict)
     
 def save_model_weights(epoch_num):
-    model_file = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/tripelImage6s_' + str(epoch_num).zfill(3)
+    model_file = '/home/grammers/catkin_ws/src/nearCollision/data/traindModels/tripelImage6s_' + str(epoch_num).zfill(3)
     torch.save(model.state_dict(), model_file)
 
 
@@ -79,7 +79,7 @@ num_final_in = model.classifier[-1].in_features
 NUM_CLASSES = 20
 model.classifier[-1] = nn.Linear(num_final_in, NUM_CLASSES)
 
-model_path = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/' + 'vgg_on_voc' + str(800)
+model_path = '/home/grammers/catkin_ws/src/nearCollision/data/' + 'vgg_on_voc' + str(800)
 load_model_weights(model_path)
 
 model.classifier[-1] = nn.Linear(num_final_in, 1) ## Regressed output
@@ -88,20 +88,25 @@ features = list(model.classifier.children())[:-1] # Remove last layer
 features.extend([nn.Linear(num_features, 2048), nn.ReLU(), nn.Linear(2048, 3)]) # Add our layer with 4 outputs
 model.classifier = nn.Sequential(*features) # Replace the model classifier
 
+
+epoch_num = 56
+MODEL_PATH = '/home/grammers/catkin_ws/src/nearCollision/data/traindModels/tripelImage6s_' + str(epoch_num).zfill(3)
+load_model_weights(MODEL_PATH)
+
 # In[5]:
 
 
-if os.path.exists('SingleImage6s'):
-    shutil.rmtree('SingleImage6s')
-#logger = Logger('SingleImage6s', name='performance_curves')
+if os.path.exists('tripleImage6s'):
+    shutil.rmtree('tripleImage6s')
+logger = Logger('tripleImage6s', name='performance_curves')
 
 
 # In[6]:
 
 
 model = model.cuda()
-test_dir = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/h5_files/tripelTest/'
-train_dir = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/h5_files/tripleTrain/'
+test_dir = '/home/grammers/catkin_ws/src/nearCollision/data/h5_file/tripleTest/'
+train_dir = '/home/grammers/catkin_ws/src/nearCollision/data/h5_file/tripleTrain/'
 #hfp_test = h5py.File('/.h5', 'r')
 #hfp_train = h5py.File('/mnt/hdd1/aashi/cmu_data/SingleImageTrain.h5', 'r')
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
@@ -110,13 +115,14 @@ optimizer = optim.SGD(model.parameters(),0.0005)
 
 ## Test data: 949; Train data: 12146; Mean: 2.909sec; Variance: 2.2669sec
 
-iterations = 0
-epochs = 100 
+iterations = 57
+epochs = 43 
 criterion = nn.MSELoss()
 
 for e in range(epochs):
-    print(e)
+    print(57 + e)
     model.eval()
+    mean_err = 0.0
     for test_file in os.listdir(test_dir):
         hfp_test = h5py.File(test_dir + test_file, 'r') 
         print(test_file)
@@ -131,9 +137,11 @@ for e in range(epochs):
             #err += abs(outputs[0].data.cpu().numpy() - label[0].data.cpu().numpy())
             for i in range(0, 3):
                 err += abs(outputs[0][i].data.cpu().numpy() - label[0][i].data.cpu().numpy())
-        #logger.scalar_summary('Test Error', err/len(test_loader), e)
+        logger.scalar_summary('Test Error', err/len(test_loader), e)
+        mean_err += err/len(test_loader)
         print('test err = %s' % str(err/len(test_loader)))
         hfp_test.close()
+    print('mean err = %s' % str(mean_err/14.0))
     model.train() 
     
 
@@ -153,13 +161,12 @@ for e in range(epochs):
             loss.backward()
             optimizer.step()
             iterations += 1
-        #logger.scalar_summary('training_loss', loss.data.cpu().numpy(), iterations)
+        logger.scalar_summary('training_loss', loss.data.cpu().numpy(), iterations)
         hfp_train.close()
-        print('trained')
+        #print('trained')
 
-    if e % 10 == 0 :
-        save_model_weights(e)
-        print('saved')
+    save_model_weights(57 + e)
+    print('saved')
 
 # In[ ]:
 
