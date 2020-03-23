@@ -38,6 +38,7 @@ from collections import deque
 from std_msgs.msg import Float32 
 ##########################################
 
+path = '/home/grammers/catkin_ws/src/nearCollision/data/' 
 
 CLASSES = ('__background__',
     'aeroplane', 'bicycle', 'bird', 'boat',
@@ -54,7 +55,7 @@ vgg_model = models.vgg16(pretrained=True)
 num_final_in = vgg_model.classifier[-1].in_features
 NUM_CLASSES = 20 
 vgg_model.classifier[-1] = nn.Linear(num_final_in, NUM_CLASSES)
-model_path = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/vgg_on_voc800'
+model_path = path + 'trained_models/vgg_on_voc800'
 vgg_model.load_state_dict(torch.load(model_path)) 
 ##########################################
 # mean is used to offset normalisation
@@ -129,10 +130,10 @@ class image_converter:
         self.nstream.eval()
 
 		#self.nstream.load_state_dict(torch.load('../../../data/model_files/4Image6s_004'))
-        self.nstream.load_state_dict(torch.load('/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/6Image6s_027'))
+        self.nstream.load_state_dict(torch.load(path + 'trained_models/6Image6s_027'))
 
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/usb_cam/image_raw", Image, self.callback)
+        self.image_sub = rospy.Subscriber("/image_slow", Image, self.callback)
 
         self.counter = 0 ## Intializing a counter, alternately I can initialize a queue 
 

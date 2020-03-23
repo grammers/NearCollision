@@ -10,6 +10,8 @@ import torch
 import torchvision.models as models
 import torch.nn as nn 
 
+path = '/home/grammers/catkin_ws/src/nearCollision/data/'
+#path = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/'
 mean = 2.26691915033756 
 class net_loader:
 
@@ -20,11 +22,9 @@ class net_loader:
         self.model.classifier[-1] = nn.Linear(
             self.num_final_in, self.NUM_CLASSES) ## Regressed output
     #    self.model = nn.Linear(self.num_final_in, NUM_CLASSES)
-        print('0.1')        
-        self.load_weights('/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/vgg_on_voc800')
-        print('0.2')
+        self.load_weights(path + 'trained_models/vgg_on_voc800')
         self.load_pred()
-        self.load_weights('/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/tripelImage6s_092')
+        self.load_weights(path + 'trained_models/tripelImage6s_092')
         
         self.model = self.model.cuda()
         self.model.eval()
