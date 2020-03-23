@@ -8,27 +8,29 @@ import numpy as np
 import scipy.io
 import math
 
+
 def generateH5(imgs, labels, name):
     print(len(imgs))
     name = name.split('.')[0]
     imgs = np.array(imgs)
-    #imgs_r = np.zeros((int(math.ceil(imgs.shape[1] / 2)), 224, 224, 3))
-    #imgs_u = np.zeros((imgs.shape[1] / 2 , 224, 224, 3))
     imgs_r = []
     imgs_u = []
     label_r = []
     label_u = []
     i = 0 
+    # lopp all images
     for img in imgs:
-        test = cv2.resize(img.T, (224, 224)) 
+        img_resized = cv2.resize(img.T, (224, 224)) 
+        # split out every secund to achive a 5hz data set
         if i % 2 == 0:
-            imgs_r.append(test)
+            imgs_r.append(img_resized)
+            # the nex 60 labes are for the next 6s horision
             if len(labels) > i + 60:
                 label_r.append(find_label(labels[i:i+60]))
             else:
                 label_r.append(find_label(labels[i:]))
         else:
-            imgs_u.append(test)
+            imgs_u.append(img_resized)
             if len(labels) > i + 60:
                 label_u.append(find_label(labels[i:i+60]))
             else:
@@ -36,10 +38,12 @@ def generateH5(imgs, labels, name):
         i += 1
     label_u = np.asarray(label_u) 
     label_r = np.asarray(label_r)
+    # file with eaven indexed images
     f = h5py.File('../data/3split_h5/' + name + '_e.h5', 'w')
     f.create_dataset('lable', data=label_r)
     f.create_dataset("image", data=imgs_r)
     f.close()
+    # file wiht uneven indexed images
     f = h5py.File('../data/3split_h5/' + name + '_u.h5', 'w')
     f.create_dataset('lable', data=label_u)
     f.create_dataset('image', data=imgs_u)
@@ -47,6 +51,7 @@ def generateH5(imgs, labels, name):
     print('h5 file created')
 
 def find_label(labels):
+    # value for no ner collision in set
     ret = [6.1, 6.1, 6.1]
     i = 0.0
     for label in labels:
@@ -54,6 +59,7 @@ def find_label(labels):
         for l in label:
             if l == 1:
                 if ret[j] == 6.1:
+                    # every i is 0.1s
                     ret[j] = float(i * 0.1)
             j += 1
         i += 1.0
@@ -73,13 +79,18 @@ if __name__ == '__main__':
 
     new_ext = extrinsic
 
-    #target_dirs = ['../data/mats_dec/',  '../data/mats_nov/', '../data/mats_nov2/']
+    # raw files plased in difrent maps
+    #target_dirs = ['../data/mats_dec/',  '../data/mats_nov/']
     target_dirs = ['../data/mats_nov/']
     #target_dirs =['../sample_data/']
     for directory in target_dirs:
         for filename in os.listdir(directory): 
             if filename.endswith(".mat"):
                 labels = []
+
+                # mats_nov contains .mat whth a diferent format
+                # difrent read methods are used.
+                # that cases folowup diferenses.
                 if directory == '../data/mats_dec/':
                     mat = scipy.io.loadmat(directory + filename)
                 else:
@@ -94,6 +105,8 @@ if __name__ == '__main__':
 
                 mat = None
                 gc.collect()
+
+                # get the size of the images
                 size_v = left_img[0][0].shape[0]
                 size_h = left_img[0][0].shape[1]
                 
@@ -104,6 +117,8 @@ if __name__ == '__main__':
                     #cloud = clouds[0][i]
                     #np.flip(cloud, 0)
                     
+                    # lickly problem wiht mats_dec files at the momoen
+                    # check mats_dec to corect
                     cloud = cloud.T
                     homogenized_cloud = np.ones((cloud.shape[0], 4))
                     homogenized_cloud[:,0:3] = cloud
@@ -111,6 +126,7 @@ if __name__ == '__main__':
                     image_pixels =np.matmul(intrinsic, np.matmul(new_ext, np.transpose(homogenized_cloud)))
                     image_pixels = np.divide(image_pixels, image_pixels[2,:])
 
+                    # get desierd boundig boxes.
                     dets = np.array(
                         [[0, 0, size_v, size_h * 5 / 12],
                         [0, size_h * 5 / 12, size_v, (size_h * 7) / 12],
@@ -125,6 +141,7 @@ if __name__ == '__main__':
 
                         d = []
 
+                        # if point is inside dounding box shoud it be considerd
                         for k in range(image_pixels.shape[1]):
                             u = int(image_pixels[0,k])
                             v = int(image_pixels[1,k])
@@ -133,7 +150,9 @@ if __name__ == '__main__':
                                 d.append(homogenized_cloud[k,0])
 
 
+                        # cheks distens to points inside bounding boxes
                         for depth in d:
+                            # near collision is defined as 1.0m
                             if depth < 1.0:
                                 label[j] = 1
 
