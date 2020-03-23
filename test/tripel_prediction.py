@@ -12,7 +12,8 @@ import torch.nn as nn
 
 path = '/home/grammers/catkin_ws/src/nearCollision/data/'
 #path = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/'
-mean = 2.26691915033756 
+#mean = 2.26691915033756 
+
 class net_loader:
 
     def __init__(self):
@@ -22,6 +23,7 @@ class net_loader:
         self.model.classifier[-1] = nn.Linear(
             self.num_final_in, self.NUM_CLASSES) ## Regressed output
     #    self.model = nn.Linear(self.num_final_in, NUM_CLASSES)
+        # load the modals
         self.load_weights(path + 'trained_models/vgg_on_voc800')
         self.load_pred()
         self.load_weights(path + 'trained_models/tripelImage6s_092')
@@ -46,7 +48,7 @@ class net_loader:
             torch.load(model_path))
 
     def feed_net(self, stack_img):
-        return self.model(stack_img.pop())[0].data + mean
+        return self.model(stack_img.pop())[0].data
         
         
 class ROS_runner:
@@ -60,6 +62,7 @@ class ROS_runner:
         #"/usb_cam/image_raw", Image, self.callback)
         "/image_slow", Image, self.callback)
         
+        # publiched topics
         self.time_pub_left = rospy.Publisher(
         'near_collision_time/left', Float32, queue_size = 10)
         self.time_pub_center = rospy.Publisher(
@@ -72,6 +75,8 @@ class ROS_runner:
     def callback(self, data):
         self.image_prosesser.preprocess(data) 
        
+        # if is used if a mulit images steam is used
+        # images feed thrue the network
         if (self.image_prosesser.is_filed()):
             t = self.network.feed_net(self.image_prosesser.stack())
         else:

@@ -26,6 +26,7 @@ import math
 # In[2]:
 
 
+# extraxts data form .h5 flie
 class FrameDataset(data.Dataset):
     
     def __init__(self, f, transform=None, test = False):
@@ -85,13 +86,16 @@ load_model_weights(model_path)
 model.classifier[-1] = nn.Linear(num_final_in, 1) ## Regressed output
 num_features = model.classifier[6].in_features
 features = list(model.classifier.children())[:-1] # Remove last layer
-features.extend([nn.Linear(num_features, 2048), nn.ReLU(), nn.Linear(2048, 3)]) # Add our layer with 4 outputs
+# modification to network ockur here
+features.extend([nn.Linear(num_features, 2048), nn.ReLU(), nn.Linear(2048, 3)]) # Add our layer with 3 outputs
 model.classifier = nn.Sequential(*features) # Replace the model classifier
 
-
-epoch_num = 56
+'''
+# ust to restart att custom point
+epoch_num = 0
 MODEL_PATH = '/home/grammers/catkin_ws/src/nearCollision/data/traindModels/tripelImage6s_' + str(epoch_num).zfill(3)
 load_model_weights(MODEL_PATH)
+'''
 
 # In[5]:
 
@@ -115,14 +119,16 @@ optimizer = optim.SGD(model.parameters(),0.0005)
 
 ## Test data: 949; Train data: 12146; Mean: 2.909sec; Variance: 2.2669sec
 
-iterations = 57
-epochs = 43 
+iterations = 0
+epochs = 100 
 criterion = nn.MSELoss()
 
 for e in range(epochs):
-    print(57 + e)
+    print(e)
     model.eval()
     mean_err = 0.0
+
+    # read ewry file in the test dir
     for test_file in os.listdir(test_dir):
         hfp_test = h5py.File(test_dir + test_file, 'r') 
         print(test_file)
@@ -134,23 +140,31 @@ for e in range(epochs):
             label = Variable(label.float().cuda())
             label = label.unsqueeze(-1)
             outputs = model(rgb)
-            #err += abs(outputs[0].data.cpu().numpy() - label[0].data.cpu().numpy())
+            # ther are thre outputs to consider
             for i in range(0, 3):
+                #add on error of eatch image
                 err += abs(outputs[0][i].data.cpu().numpy() - label[0][i].data.cpu().numpy())
         logger.scalar_summary('Test Error', err/len(test_loader), e)
         mean_err += err/len(test_loader)
+        #prints the mean error
         print('test err = %s' % str(err/len(test_loader)))
         hfp_test.close()
+    # mean of the entire test setion
     print('mean err = %s' % str(mean_err/14.0))
     model.train() 
     
-
+    # train on all data in training dir
     for train_file in os.listdir(train_dir):
         hfp_train = h5py.File(train_dir + train_file, 'r') 
         print(train_file)
+        # batch_size shoud myght be somthing ells but it don't work with out modifications
         batch_size = 1
-        train_loader = data.DataLoader(FrameDataset(f = hfp_train, transform = transforms.Compose([transforms.ToTensor(), normalize]),test = False),
-                                      batch_size=batch_size, shuffle=True)
+        train_loader = data.DataLoader(
+            FrameDataset(f = hfp_train, transform = transforms.Compose(
+            [transforms.ToTensor(), normalize]),
+            test = False),
+            batch_size=batch_size, shuffle=True)
+
         for iter, (rgb, label) in enumerate(train_loader, 0):
             rgb = Variable(rgb.float().cuda())
             label = Variable(label.float().cuda())
@@ -165,7 +179,7 @@ for e in range(epochs):
         hfp_train.close()
         #print('trained')
 
-    save_model_weights(57 + e)
+    save_model_weights(e)
     print('saved')
 
 # In[ ]:

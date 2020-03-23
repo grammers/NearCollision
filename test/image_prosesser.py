@@ -16,9 +16,11 @@ class Image_prosesser:
         self.stack_images = deque(maxlen = self.buf_size)
 
     def preprocess(self, image):
+        # resice to desierd size
         cv_img = self.bridge.imgmsg_to_cv2(image, "bgr8")
         cv_img = cv2.resize(cv_img, (224, 224))
 
+        #normalize the image not chor way
         normalize = transforms.Normalize(
         mean=[0.485, 0.456, 0.406], 
         std=[0.229, 0.224, 0.225])
