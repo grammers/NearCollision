@@ -81,8 +81,8 @@ if __name__ == '__main__':
 
     # raw files plased in difrent maps
     #target_dirs = ['../data/mats_dec/',  '../data/mats_nov/']
-    target_dirs = ['../data/mats_nov/']
-    #target_dirs =['../sample_data/']
+    #target_dirs = ['../data/mats_nov/']
+    target_dirs =['../sample_data/']
     for directory in target_dirs:
         for filename in os.listdir(directory): 
             if filename.endswith(".mat"):
@@ -91,10 +91,10 @@ if __name__ == '__main__':
                 # mats_nov contains .mat whth a diferent format
                 # difrent read methods are used.
                 # that cases folowup diferenses.
-                if directory == '../data/mats_dec/':
-                    mat = scipy.io.loadmat(directory + filename)
-                else:
-                    mat = mat73.loadmat(directory + filename)
+                #if directory == '../data/mats_dec/':
+                mat = scipy.io.loadmat(directory + filename)
+                #else:
+                #mat = mat73.loadmat(directory + filename)
                 #mat = h5py.File(directory + filename)
                 print('read file')
                 
@@ -107,19 +107,23 @@ if __name__ == '__main__':
                 gc.collect()
 
                 # get the size of the images
-                size_v = left_img[0][0].shape[0]
-                size_h = left_img[0][0].shape[1]
+                size_v = left_img[0][0].shape[0] #720
+                size_h = left_img[0][0].shape[1] #1280
                 
 
-                #for i in range(0, clouds[0].shape[1]):
+                ## change if not mats_nov is used
+                ## for i and cloud lines
                 for cloud in clouds:
-                    label  = [0, 0, 0]
+                #for i in range(0, clouds[0].shape[0]):
                     #cloud = clouds[0][i]
-                    #np.flip(cloud, 0)
+                    
+                    label  = [0, 0, 0]
+                    
                     
                     # lickly problem wiht mats_dec files at the momoen
                     # check mats_dec to corect
-                    cloud = cloud.T
+                    if directory == '../data/mats_now':
+                        cloud = cloud.T
                     homogenized_cloud = np.ones((cloud.shape[0], 4))
                     homogenized_cloud[:,0:3] = cloud
 
@@ -138,6 +142,7 @@ if __name__ == '__main__':
                         x1 = int(dets[j][1])
                         y2 = int(dets[j][2])
                         x2 = int(dets[j][3])
+                        
 
                         d = []
 

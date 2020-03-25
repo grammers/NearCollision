@@ -11,6 +11,10 @@ import torchvision.models as models
 import torch.nn as nn 
 
 mean = 2.26691915033756 
+var = 2.909121366
+path = '/home/grammers/catkin_ws/src/nearCollision/data/'
+# paht = '/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/'
+
 class net_loader:
 
     def __init__(self):
@@ -21,10 +25,10 @@ class net_loader:
             self.num_final_in, self.NUM_CLASSES) ## Regressed output
     #    self.model = nn.Linear(self.num_final_in, NUM_CLASSES)
         
-        self.load_weights('/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/vgg_on_voc800')
+        self.load_weights(path + 'trained_models/vgg_on_voc800')
 
         self.load_pred()
-        self.load_weights('/home/hexa/catkin_workspaces/catkin_samuel/src/nearCollision/data/trained_models/SingleImage6s_047')
+        self.load_weights(path + 'trained_models/SingleImage6s_047')
         
         self.model = self.model.cuda()
         self.model.eval()
@@ -46,7 +50,7 @@ class net_loader:
             torch.load(model_path))
 
     def feed_net(self, stack_img):
-        return self.model(stack_img.pop())[0].data + mean
+        return self.model(stack_img.pop())[0].data*var + mean
         
         
 class ROS_runner:
@@ -57,10 +61,11 @@ class ROS_runner:
         self.network = net_loader()
         #ros setup
         self.image_sub = rospy.Subscriber(
-        "/usb_cam/image_raw", Image, self.callback)
+        "/image_slow", Image, self.callback)
+        #"/usb_cam/image_raw", Image, self.callback)
         
         self.time_pub = rospy.Publisher(
-        'near_collision_time', Float32, queue_size = 10)
+        'near_collision_time/singel', Float32, queue_size = 10)
 
         self.i = 0
 

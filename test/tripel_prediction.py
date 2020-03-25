@@ -26,7 +26,7 @@ class net_loader:
         # load the modals
         self.load_weights(path + 'trained_models/vgg_on_voc800')
         self.load_pred()
-        self.load_weights(path + 'trained_models/tripelImage6s_092')
+        self.load_weights(path + 'trained_models/tripelImage6s_093')
         
         self.model = self.model.cuda()
         self.model.eval()
