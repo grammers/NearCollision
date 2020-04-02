@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import h5py
 
-f = h5py.File('../data/3split_h5/l_126r_e.h5', 'r')
+f = h5py.File('../data/h5_file/human_triple_test/l_115_e.h5', 'r')
 
 print(list(f.keys()))
 print(f['image'])
