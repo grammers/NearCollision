@@ -39,12 +39,12 @@ def generateH5(imgs, labels, name):
     label_u = np.asarray(label_u) 
     label_r = np.asarray(label_r)
     # file with eaven indexed images
-    f = h5py.File('../data/3split_h5/' + name + '_e.h5', 'w')
+    f = h5py.File('../data/h5_file/' + name + '_e.h5', 'w')
     f.create_dataset('lable', data=label_r)
     f.create_dataset("image", data=imgs_r)
     f.close()
     # file wiht uneven indexed images
-    f = h5py.File('../data/3split_h5/' + name + '_u.h5', 'w')
+    f = h5py.File('../data/h5_file/' + name + '_u.h5', 'w')
     f.create_dataset('lable', data=label_u)
     f.create_dataset('image', data=imgs_u)
     f.close()
@@ -81,8 +81,8 @@ if __name__ == '__main__':
 
     # raw files plased in difrent maps
     #target_dirs = ['../data/mats_dec/',  '../data/mats_nov/']
-    #target_dirs = ['../data/mats_nov/']
-    target_dirs =['../sample_data/']
+    target_dirs = ['../data/mats_nov/']
+    #target_dirs =['../sample_data/']
     for directory in target_dirs:
         for filename in os.listdir(directory): 
             if filename.endswith(".mat"):
@@ -92,9 +92,9 @@ if __name__ == '__main__':
                 # difrent read methods are used.
                 # that cases folowup diferenses.
                 #if directory == '../data/mats_dec/':
-                mat = scipy.io.loadmat(directory + filename)
+                #mat = scipy.io.loadmat(directory + filename)
                 #else:
-                #mat = mat73.loadmat(directory + filename)
+                mat = mat73.loadmat(directory + filename)
                 #mat = h5py.File(directory + filename)
                 print('read file')
                 
@@ -122,8 +122,8 @@ if __name__ == '__main__':
                     
                     # lickly problem wiht mats_dec files at the momoen
                     # check mats_dec to corect
-                    if directory == '../data/mats_now':
-                        cloud = cloud.T
+                    #if directory == '../data/mats_now':
+                    cloud = cloud.T
                     homogenized_cloud = np.ones((cloud.shape[0], 4))
                     homogenized_cloud[:,0:3] = cloud
 
@@ -167,3 +167,4 @@ if __name__ == '__main__':
                 generateH5(left_img, labels, ('l_' + filename))
                 #if directory == '../data/mats_nov2/':
                 generateH5(right_img, labels, ('r_' + filename))
+                exit()
