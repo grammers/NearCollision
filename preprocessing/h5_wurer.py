@@ -1,15 +1,22 @@
 #!/usr/bin/python
 import h5py
 
-f = h5py.File('../data/h5_file/duble_human_test/r_sample_e.h5', 'r')
+f = h5py.File('../data/h5_file/duble_human_test/l_115_u.h5', 'r')
 #f = h5py.File('../data/h5_file/l_113_e.h5', 'r')
 
 print(list(f.keys()))
 print(f['image'])
 print(f['lable'])
-for p in f['lable']:
-    print p
-print(f['lable'][0])
+#for p in f['lable']:
+#    print p
+print(f['image'][0])
+
+f = h5py.File('../data/h5_file/SingleImageTest.h5', 'r')
+
+print(list(f.keys()))
+print(f['rgb'])
+print(f['rgb'][0])
+
 '''
 print("Singel mean %s" % fs['Mean'])
 print("Singel var %s" % fs['Variance'])
